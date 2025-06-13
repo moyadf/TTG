@@ -6,4 +6,5 @@ export interface Territory {
   numero: number;
   estado: string;
   usuario_asignado: User | null;
+  fecha_devolucion?: string | null;
 }
