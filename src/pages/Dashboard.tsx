@@ -24,6 +24,7 @@ export default function Dashboard() {
   const inhabilitados = territorios.filter(t => t.estado === "inhabilitado").length;
   const caducados = territorios.filter(t => t.estado === "caducado").length;
   const especiales = territorios.filter(t => t.estado === "especial").length;
+  const territoriosCaducados = territorios.filter(t => t.estado === "caducado");
 
   const proximosVencimientos = territorios
     .filter(t => t.estado === "en_uso" && t.fecha_devolucion)
@@ -80,6 +81,22 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {vencimientos.map((t) => (
                 <ExpiryCard key={t.id} territorio={t} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {territoriosCaducados.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Caducados</h3>
+            <div className="flex flex-wrap gap-2">
+              {territoriosCaducados.map((t) => (
+                <span
+                  key={t.id}
+                  className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+                >
+                  #{t.numero}
+                </span>
               ))}
             </div>
           </div>
