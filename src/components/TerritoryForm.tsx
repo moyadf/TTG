@@ -13,6 +13,37 @@ export default function TerritorioForm({ initialData = {}, onSuccess }: Props) {
   const [numero, setNumero] = useState(initialData.numero || 0);
   const [estado, setEstado] = useState(initialData.estado || "");
   const [imagen, setImagen] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [archivoNombre, setArchivoNombre] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/", "application/pdf"];
+    const maxSizeMB = 5;
+
+    if (!allowedTypes.some(type => file.type.startsWith(type))) {
+      alert("Solo se permiten imágenes o archivos PDF");
+      return;
+    }
+
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      alert("El archivo no debe superar los 5 MB");
+      return;
+    }
+
+    setImagen(file);
+    setArchivoNombre(file.name);
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setPreviewUrl(null); // PDF no tiene preview
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +74,7 @@ export default function TerritorioForm({ initialData = {}, onSuccess }: Props) {
       }
       onSuccess();
     } catch (err) {
-      alert(err.message);
+      alert((err as Error).message);
     }
   }
 
@@ -65,11 +96,21 @@ export default function TerritorioForm({ initialData = {}, onSuccess }: Props) {
         required
         className="input"
       />
+
       <input
         type="file"
-        onChange={(e) => setImagen(e.target.files?.[0] || null)}
+        accept="image/*,.pdf"
+        onChange={handleFileChange}
         className="input"
       />
+
+      {previewUrl && (
+        <img src={previewUrl} alt="Preview" className="max-w-xs rounded shadow" />
+      )}
+      {!previewUrl && archivoNombre && (
+        <p className="text-sm text-gray-600">Archivo seleccionado: {archivoNombre}</p>
+      )}
+
       <button type="submit" className="btn-primary">
         {initialData.id ? "Actualizar" : "Crear"}
       </button>
