@@ -1,3 +1,5 @@
+import StatusBadge from "./StatusBadge";
+
 interface Props {
   territorio: {
     numero: number;
@@ -10,9 +12,10 @@ export default function TerritoryCard({ territorio }: Props) {
   return (
     <div className="bg-white rounded-2xl shadow p-4 border border-gray-200">
       <h2 className="text-lg font-semibold">Territorio #{territorio.numero}</h2>
-      <p className="text-sm text-gray-500 capitalize">
-        Estado: {territorio.estado.replace("_", " ")}
-      </p>
+      <div className="text-sm text-gray-500 flex items-center space-x-1">
+        <span>Estado:</span>
+        <StatusBadge estado={territorio.estado} />
+      </div>
       <p className="text-sm">
         Responsable: {territorio.usuario_asignado?.nombre || "Ninguno"}
       </p>
