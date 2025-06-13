@@ -1,14 +1,20 @@
 // src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
-import { getTerritorios } from "../services/territories";
+import { getTerritorios, getTerritoriosProximosVencer } from "../services/territories";
+import ExpiryCard from "../components/ExpiryCard";
 import type { Territory } from "../types/territory";
 
 export default function Dashboard() {
   const [territorios, setTerritorios] = useState<Territory[]>([]);
+  const [vencimientos, setVencimientos] = useState<Territory[]>([]);
 
   useEffect(() => {
     getTerritorios()
       .then(setTerritorios)
+      .catch(console.error);
+
+    getTerritoriosProximosVencer()
+      .then(setVencimientos)
       .catch(console.error);
   }, []);
 
@@ -49,17 +55,27 @@ export default function Dashboard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             }
           />
-          <SummaryCard
-            color="red"
-            label="Inhabilitados"
-            value={inhabilitados}
-            icon={
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
-            }
-          />
-        </div>
+        <SummaryCard
+          color="red"
+          label="Inhabilitados"
+          value={inhabilitados}
+          icon={
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+          }
+        />
+      </div>
 
-        {/* TODO: Gráficos, Vencimientos, Cards... */}
+        {vencimientos.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Próximos vencimientos</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {vencimientos.map((t) => (
+                <ExpiryCard key={t.id} territorio={t} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Puedes seguir extendiendo aquí */}
       </main>
     </div>
