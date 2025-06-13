@@ -2,8 +2,8 @@
 import { NavLink } from "react-router-dom";
 
 const tabs = [
-  { name: "Territorios", path: "/" },
-  { name: "Asignación", path: "/asignacion" },
+  { name: "Inicio", path: "/" },
+  { name: "Territorios", path: "/asignacion" },
   { name: "Historial", path: "/historial" },
   { name: "Campañas", path: "/campanas" },
   { name: "Reportes", path: "/reportes" },

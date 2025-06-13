@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { getTerritorios } from "../services/territories";
 import type { Territory } from "../types/territory";
-import NavigationTabs from "../components/NavigationTabs";
 
 export default function Dashboard() {
   const [territorios, setTerritorios] = useState<Territory[]>([]);
@@ -21,36 +20,8 @@ export default function Dashboard() {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
-        <nav className="bg-white shadow mb-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center text-blue-600 text-2xl font-bold">
-                <svg
-                  className="w-8 h-8 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7l9-4 9 4v13a2 2 0 0 1-2 2h-5m-4 0H5a2 2 0 0 1-2-2z"
-                  />
-                </svg>
-                Gestión de Territorios
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Tabs */}
-        <NavigationTabs />
-
         {/* Resumen de Territorios */}
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Resumen de Territorios</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
