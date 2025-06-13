@@ -5,6 +5,7 @@ import NewUser from "./pages/users/NewUser";
 import NewTerritory from "./pages/territories/NewTerritory";
 import AssignTerritory from "./pages/territories/AssignTerritory";
 import MainLayout from "./layouts/MainLayout";
+import ReturnTerritory from "./pages/territories/ReturnTerritory";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="asignacion" element={<AssignTerritory />} />
             <Route path="territorio/nuevo" element={<NewTerritory />} />
             <Route path="usuario/nuevo" element={<NewUser />} />
+            <Route path="territorio/devolucion" element={<ReturnTerritory />} />
           </Route>
         </Routes>
       </div>

@@ -76,7 +76,7 @@ export default function AssignTerritory() {
         fecha_entrega: hoy,
         fecha_devolucion: fechaDevolucion,
         comentarios,
-        estado_territorio: "EN_USO",
+        estado_territorio: "entregado",
       }
     ]);
 

@@ -4,12 +4,16 @@ import { NavLink } from "react-router-dom";
 const tabs = [
   { name: "Inicio", path: "/" },
   { name: "Territorios", path: "/asignacion" },
+  { name: "Crear Territorio", path: "/territorio/nuevo" },
+  { name: "Crear Usuario", path: "/usuario/nuevo" },
+  { name: "Devolución", path: "/territorio/devolucion" },
   { name: "Historial", path: "/historial" },
   { name: "Campañas", path: "/campanas" },
   { name: "Reportes", path: "/reportes" },
 ];
 
 export default function NavigationTabs() {
+
   return (
     <nav className="border-b border-gray-200 mb-6" aria-label="Tabs">
       <div className="flex space-x-8">
