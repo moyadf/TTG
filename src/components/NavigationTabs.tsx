@@ -3,13 +3,10 @@ import { NavLink } from "react-router-dom";
 
 const tabs = [
   { name: "Inicio", path: "/" },
-  { name: "Territorios", path: "/asignacion" },
-  { name: "Crear Territorio", path: "/territorio/nuevo" },
-  { name: "Crear Usuario", path: "/usuario/nuevo" },
-  { name: "Devolución", path: "/territorio/devolucion" },
-  { name: "Historial", path: "/historial" },
-  { name: "Campañas", path: "/campanas" },
-  { name: "Reportes", path: "/reportes" },
+  { name: "Asignación Territorios", path: "/asignacion" },
+  { name: "Devolución", path: "/devolucion" },
+  { name: "Gestion Territorio", path: "/territorio" },
+  { name: "Gestion Usuario", path: "/usuario" },
 ];
 
 export default function NavigationTabs() {

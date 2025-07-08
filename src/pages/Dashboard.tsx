@@ -1,14 +1,24 @@
+// src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
-import { getTerritorios } from "../services/territories";
+import { getTerritoriosList } from "../services/territories";
+import { getEntregas } from "../services/deliverys";
 import type { Territory } from "../types/territory";
-import { differenceInDays, parseISO } from "date-fns";
+import type { Delivery } from "../types/delivery";
+import { differenceInDays, parseISO, format } from "date-fns";
+import { exportHistoryExcel } from '../utils/exportHistoryExcel'
 
 export default function Dashboard() {
   const [territorios, setTerritorios] = useState<Territory[]>([]);
+  const [historial, setHistorial] = useState<Delivery[]>([]);
 
   useEffect(() => {
-    getTerritorios()
+    getTerritoriosList()
       .then(setTerritorios)
+      .catch(console.error);
+
+    // Cargar últimas 10 entradas de historial
+    getEntregas()
+      .then(data => setHistorial(data.slice(0, 10)))
       .catch(console.error);
   }, []);
 
@@ -21,18 +31,24 @@ export default function Dashboard() {
 
   const proximosVencimientos = territorios
     .filter(t => t.estado === "en_uso" && t.fecha_devolucion)
-    .map(t => ({
-      ...t,
-      diasRestantes: differenceInDays(parseISO(t.fecha_devolucion as string), new Date())
-    }))
+    .map(t => {
+      const diasRestantes = differenceInDays(
+        parseISO(t.fecha_devolucion!),
+        new Date()
+      );
+      return { ...t, diasRestantes };
+    })
     .filter(t => t.diasRestantes >= 0 && t.diasRestantes <= 7)
-    .sort((a, b) => a.diasRestantes - b.diasRestantes)
-    .slice(0, 5);
+    .sort((a, b) => a.diasRestantes - b.diasRestantes);
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Resumen de Territorios</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          Resumen de Territorios
+        </h2>
+
+        {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
           <SummaryCard color="blue" label="Total" value={total} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7l9-4 9 4v13a2 2 0 0 1-2 2h-5m-4 0H5a2 2 0 0 1-2-2z" />} />
           <SummaryCard color="green" label="Disponibles" value={disponibles} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />} />
@@ -43,29 +59,84 @@ export default function Dashboard() {
 
         {especiales > 0 && (
           <div className="mt-4 text-sm text-indigo-600">
-            {especiales} territorio{especiales > 1 ? "s" : ""} marcado{especiales > 1 ? "s" : ""} como <strong>especial</strong>.
+            {especiales} territorio{especiales > 1 ? "s" : ""} marcado
+            {especiales > 1 ? "s" : ""} como <strong>especial</strong>.
           </div>
         )}
 
+        {/* Vencimientos próximos */}
         {proximosVencimientos.length > 0 && (
           <section className="mt-10">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Vencimientos Próximos</h3>
-            <div className="space-y-4">
-              {proximosVencimientos.map(t => (
-                <div key={t.id} className="flex items-center justify-between bg-yellow-50 p-4 rounded shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Vencimientos Próximos
+            </h3>
+            <div className="space-y-3">
+              {proximosVencimientos.map((t) => (
+                <div
+                  key={t.id}
+                  className="bg-yellow-50 text-gray-800 p-4 rounded-lg flex items-center justify-between"
+                >
                   <div>
-                    <p className="font-semibold text-gray-800">
-                      Territorio #{t.numero}{t.nombre && ` - ${t.nombre}`}
+                    <p className="font-semibold">
+                      Territorio #{t.numero}{t.usuario_asignado?.nombre ? ` - ${t.usuario_asignado.nombre}` : ""}
                     </p>
-                    <p className="text-sm text-gray-600">Vence en {t.diasRestantes} día{t.diasRestantes !== 1 ? "s" : ""}</p>
+                    <p className="text-sm">
+                      Vence en {t.diasRestantes} día{t.diasRestantes !== 1 ? "s" : ""}
+                    </p>
                   </div>
-                  <div className="text-right text-gray-700 font-medium">{t.usuario_asignado?.nombre || "Sin asignar"}</div>
-                  <div className="text-orange-500 font-bold text-lg ml-4">!</div>
+                  <div className="font-medium">
+                    {t.usuario_asignado?.nombre ?? "Sin asignar"}
+                  </div>
+                  <div className="text-yellow-600 font-bold text-xl">!</div>
                 </div>
               ))}
             </div>
           </section>
         )}
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={exportHistoryExcel}
+            className="text-white cursor-pointer bg-purple-700 hover:bg-purple-800 focus:outline-none focus:ring-4 focus:ring-purple-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900"
+          >
+            📥 S-13 (Excel)
+          </button>
+        </div>
+
+        {/* Historial reciente */}
+        <section className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Historial Reciente
+          </h3>
+          <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+            <table className="w-full text-sm text-left text-gray-500">
+              <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3">Territorio</th>
+                  <th className="px-6 py-3">Usuario</th>
+                  <th className="px-6 py-3">Entregado</th>
+                  <th className="px-6 py-3">Fecha Devolución</th>
+                  <th className="px-6 py-3">Estado</th>
+                  <th className="px-6 py-3">Comentarios</th>
+                  <th className="px-6 py-3">Creado en</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historial.map((r) => (
+                  <tr key={r.id} className="bg-white border-b hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">#{r.territorio_id.slice(0, 4)}</td>
+                    <td className="px-6 py-4">{r.usuario_id.nombre}</td>
+                    <td className="px-6 py-4">{format(new Date(r.fecha_entrega), "dd/MM/yyyy")}</td>
+                    <td className="px-6 py-4">{r.fecha_devolucion ? format(new Date(r.fecha_devolucion), "dd/MM/yyyy") : "-"}</td>
+                    <td className="px-6 py-4">{r.estado_territorio}</td>
+                    <td className="px-6 py-4">{r.comentarios ?? "-"}</td>
+                    <td className="px-6 py-4">{format(new Date(r.creado_en), "dd/MM/yyyy HH:mm")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
     </div>
   );
@@ -77,7 +148,6 @@ type SummaryCardProps = {
   value: number;
   icon: JSX.Element;
 };
-
 function SummaryCard({ color, label, value, icon }: SummaryCardProps) {
   const bgMap = {
     blue: "bg-blue-100 text-blue-600",
@@ -86,7 +156,6 @@ function SummaryCard({ color, label, value, icon }: SummaryCardProps) {
     red: "bg-red-100 text-red-600",
     purple: "bg-purple-100 text-purple-600",
   };
-
   return (
     <div className="bg-white shadow rounded-lg p-5 flex items-center">
       <div className={`p-3 rounded-full ${bgMap[color]}`}>

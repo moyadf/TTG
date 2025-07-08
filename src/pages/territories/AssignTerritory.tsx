@@ -3,6 +3,7 @@ import { supabase } from "../../services/supabase";
 import type { Territory } from "../../types/territory";
 import type { User } from "../../types/user";
 import { Combobox } from "@headlessui/react";
+import { format } from "date-fns";
 
 export default function AssignTerritory() {
   const [territorios, setTerritorios] = useState<Territory[]>([]);
@@ -18,21 +19,30 @@ export default function AssignTerritory() {
     async function load() {
       const { data: terrs } = await supabase
         .from<Territory>("territorios")
-        .select("id, numero, estado, fecha_entrega, fecha_caducidad, descansa_hasta, usuario_asignado(id)");
+        .select(
+          "id, numero, estado, fecha_entrega, fecha_caducidad, descansa_hasta, usuario_asignado(id), imagen_url" // Añadido imagen_url
+        );
 
-      const libres = terrs?.filter((t) => {
-        if (t.estado !== "disponible") return false;
-        if (t.fecha_caducidad && new Date() >= new Date(t.fecha_caducidad)) return false;
-        if (t.descansa_hasta && new Date() < new Date(t.descansa_hasta)) return false;
-        return true;
-      }) || [];
+      const hoy = new Date();
+      const libres =
+        terrs?.filter((t) => {
+          if (t.estado !== "disponible") return false;
+          if (t.fecha_caducidad && hoy > new Date(t.fecha_caducidad))
+            return false;
+          if (t.descansa_hasta && hoy < new Date(t.descansa_hasta))
+            return false;
+          return true;
+        }) || [];
       setTerritorios(libres);
 
       const { data: us } = await supabase
         .from<User>("usuarios")
         .select("id, nombre, telefono");
 
-      const disponibles = us?.filter((u) => !terrs?.some((t) => t.usuario_asignado?.id === u.id)) || [];
+      const disponibles =
+        us?.filter(
+          (u) => !terrs?.some((t) => t.usuario_asignado?.id === u.id)
+        ) || [];
       setUsuarios(disponibles);
 
       const t3 = new Date();
@@ -43,6 +53,33 @@ export default function AssignTerritory() {
     load();
   }, []);
 
+  const sendWhatsAppMessage = () => {
+    if (!selectedUserObj || !selectedTerritorio) return;
+    
+    const territorio = territorios.find(t => t.id === selectedTerritorio);
+    if (!territorio) return;
+
+    const fechaEntrega = format(new Date(), "dd/MM/yyyy");
+    const fechaDev = format(new Date(fechaDevolucion), "dd/MM/yyyy");
+
+    // Mensaje con enlace a la imagen si existe
+    const message = `¡Hola ${selectedUserObj.nombre}!\n\n` +
+                   `Te informamos que has sido asignado al territorio *${territorio.numero}*.\n\n` +
+                   `📅 *Fecha de entrega:* ${fechaEntrega}\n` +
+                   `📅 *Fecha límite de devolución:* ${fechaDev}\n` +
+                   `${comentarios ? `\n📝 *Comentarios:*\n${comentarios}\n` : ''}` +
+                   `${campania ? `\n⚠️ *Este territorio es parte de una campaña especial*\n` : ''}` +
+                   `\nPor favor, confirma la recepción de este mensaje.\n\n` +
+                   `${territorio.imagen_url ? `\n🔍 *Ver territorio:* ${territorio.imagen_url}\n` : ''}` +
+                   `¡Gracias por tu servicio!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const phone = selectedUserObj.telefono.replace(/[^\d]/g, '');
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, "_blank");
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedTerritorio || !selectedUserObj) {
@@ -51,7 +88,7 @@ export default function AssignTerritory() {
 
     const hoy = new Date().toISOString().slice(0, 10);
 
-    // 1. Actualizar territorio
+    // Actualizar territorio
     const { error: updateError } = await supabase
       .from("territorios")
       .update({
@@ -59,6 +96,7 @@ export default function AssignTerritory() {
         usuario_asignado: selectedUserObj.id,
         fecha_entrega: hoy,
         fecha_devolucion: fechaDevolucion,
+        fecha_caducidad: fechaDevolucion,
         es_campaña_especial: campania,
         comentarios,
       })
@@ -68,7 +106,7 @@ export default function AssignTerritory() {
       return alert("Error al asignar: " + updateError.message);
     }
 
-    // 2. Insertar historial en entregas
+    // Insertar historial
     const { error: logError } = await supabase.from("entregas").insert([
       {
         territorio_id: selectedTerritorio,
@@ -77,22 +115,27 @@ export default function AssignTerritory() {
         fecha_devolucion: fechaDevolucion,
         comentarios,
         estado_territorio: "entregado",
-      }
+      },
     ]);
 
     if (logError) {
-      return alert("Asignado, pero error al guardar historial: " + logError.message);
+      return alert(
+        "Asignado, pero error al guardar historial: " + logError.message
+      );
     }
 
-    alert("¡Territorio asignado exitosamente!");
-    window.location.reload();
+    // Enviar mensaje por WhatsApp
+    sendWhatsAppMessage();
+
+    alert("¡Territorio asignado exitosamente! Se abrirá WhatsApp para enviar el mensaje.");
   }
 
-  const filteredUsers = searchUser === ""
-    ? usuarios
-    : usuarios.filter((u) =>
-        u.nombre.toLowerCase().includes(searchUser.toLowerCase())
-      );
+  const filteredUsers =
+    searchUser === ""
+      ? usuarios
+      : usuarios.filter((u) =>
+          u.nombre.toLowerCase().includes(searchUser.toLowerCase())
+        );
 
   return (
     <div className="max-w-xl mx-auto mt-8 bg-white shadow rounded-lg p-6">
@@ -113,6 +156,10 @@ export default function AssignTerritory() {
             {territorios.map((t) => (
               <option key={t.id} value={t.id}>
                 Territorio #{t.numero}
+                {t.fecha_caducidad && (
+                  <> – vence {format(new Date(t.fecha_caducidad), "dd/MM/yyyy")}</>
+                )}
+                {t.imagen_url && " (con imagen)"}
               </option>
             ))}
           </select>
@@ -120,7 +167,9 @@ export default function AssignTerritory() {
 
         {/* Usuario */}
         <div>
-          <label className="block mb-1 font-medium">Usuario responsable</label>
+          <label className="block mb-1 font-medium">
+            Usuario responsable
+          </label>
           <Combobox value={selectedUserObj} onChange={setSelectedUserObj}>
             <div className="relative">
               <Combobox.Input
@@ -129,7 +178,9 @@ export default function AssignTerritory() {
                 onChange={(e) => setSearchUser(e.target.value)}
                 displayValue={(u: User) => u?.nombre || ""}
               />
-              <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">▼</Combobox.Button>
+              <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+                ▼
+              </Combobox.Button>
               {filteredUsers.length > 0 && (
                 <Combobox.Options className="absolute mt-1 w-full bg-white shadow max-h-60 overflow-auto z-10">
                   {filteredUsers.map((u) => (
@@ -137,7 +188,9 @@ export default function AssignTerritory() {
                       key={u.id}
                       value={u}
                       className={({ active }) =>
-                        `cursor-pointer select-none p-2 ${active ? "bg-blue-100" : ""}`
+                        `cursor-pointer select-none p-2 ${
+                          active ? "bg-blue-100" : ""
+                        }`
                       }
                     >
                       {u.nombre} - {u.telefono}
@@ -151,7 +204,9 @@ export default function AssignTerritory() {
 
         {/* Fecha (automática) */}
         <div>
-          <label className="block mb-1 font-medium">Fecha de devolución (auto)</label>
+          <label className="block mb-1 font-medium">
+            Fecha de devolución (auto)
+          </label>
           <input
             type="date"
             className="input w-full bg-gray-100 text-gray-700"
@@ -180,10 +235,14 @@ export default function AssignTerritory() {
             rows={3}
             value={comentarios}
             onChange={(e) => setComentario(e.target.value)}
+            placeholder="Notas adicionales sobre la asignación..."
           />
         </div>
 
-        <button type="submit" className="flex items-center mx-auto justify-center-center px-4 bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600 transitionbg-blue-600">
+        <button
+          type="submit"
+          className="text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm px-5 py-3.5 text-center me-2 mb-2 dark:focus:ring-yellow-900 w-full"
+        >
           Asignar Territorio
         </button>
       </form>

@@ -1,11 +1,12 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import NewUser from "./pages/users/NewUser";
+import UsersPage from "./pages/users/UserPages";
 import NewTerritory from "./pages/territories/NewTerritory";
 import AssignTerritory from "./pages/territories/AssignTerritory";
 import MainLayout from "./layouts/MainLayout";
 import ReturnTerritory from "./pages/territories/ReturnTerritory";
+import TerritoriesPage from "./pages/territories/TerritoriesPage";
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
                       d="M3 7l9-4 9 4v13a2 2 0 0 1-2 2h-5m-4 0H5a2 2 0 0 1-2-2z"
                     />
                   </svg>
-                  Gestión de Territorios
+                  GTTG
                 </div>
               </div>
             </div>
@@ -40,9 +41,9 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="asignacion" element={<AssignTerritory />} />
-            <Route path="territorio/nuevo" element={<NewTerritory />} />
-            <Route path="usuario/nuevo" element={<NewUser />} />
-            <Route path="territorio/devolucion" element={<ReturnTerritory />} />
+            <Route path="devolucion" element={<ReturnTerritory />} />
+            <Route path="territorio" element={<TerritoriesPage />} />
+            <Route path="usuario" element={<UsersPage />} />
           </Route>
         </Routes>
       </div>
