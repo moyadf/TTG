@@ -1,3 +1,4 @@
+// src/pages/territories/AssignTerritory.tsx
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabase";
 import type { Territory } from "../../types/territory";
@@ -17,10 +18,11 @@ export default function AssignTerritory() {
 
   useEffect(() => {
     async function load() {
+      // 1) Cargamos todos los territorios disponibles
       const { data: terrs } = await supabase
-        .from<Territory>("territorios")
+        .from<Territory, Territory>("territorios")
         .select(
-          "id, numero, estado, fecha_entrega, fecha_caducidad, descansa_hasta, usuario_asignado(id), imagen_url" // Añadido imagen_url
+          "id, numero, estado, fecha_entrega, fecha_caducidad, descansa_hasta, usuario_asignado(id), imagen_url"
         );
 
       const hoy = new Date();
@@ -35,16 +37,14 @@ export default function AssignTerritory() {
         }) || [];
       setTerritorios(libres);
 
+      // 2) Cargamos todos los usuarios (antes solo los que no tenían ninguno)
       const { data: us } = await supabase
         .from<User>("usuarios")
         .select("id, nombre, telefono");
 
-      const disponibles =
-        us?.filter(
-          (u) => !terrs?.some((t) => t.usuario_asignado?.id === u.id)
-        ) || [];
-      setUsuarios(disponibles);
+      setUsuarios(us || []); // ahora todos los usuarios
 
+      // 3) Fecha de devolución por defecto a +3 meses
       const t3 = new Date();
       t3.setMonth(t3.getMonth() + 3);
       setFechaDevolucion(t3.toISOString().slice(0, 10));
@@ -53,33 +53,37 @@ export default function AssignTerritory() {
     load();
   }, []);
 
+  // filtrado local de combobox
+  const filteredUsers =
+    searchUser === ""
+      ? usuarios
+      : usuarios.filter((u) =>
+          u.nombre.toLowerCase().includes(searchUser.toLowerCase())
+        );
+
+  // función para abrir WhatsApp (igual que antes)
   const sendWhatsAppMessage = () => {
     if (!selectedUserObj || !selectedTerritorio) return;
-    
-    const territorio = territorios.find(t => t.id === selectedTerritorio);
+
+    const territorio = territorios.find((t) => t.id === selectedTerritorio);
     if (!territorio) return;
 
     const fechaEntrega = format(new Date(), "dd/MM/yyyy");
     const fechaDev = format(new Date(fechaDevolucion), "dd/MM/yyyy");
 
-    // Mensaje con enlace a la imagen si existe
-    const message = `¡Hola ${selectedUserObj.nombre}!\n\n` +
-                   `Te informamos que has sido asignado al territorio *${territorio.numero}*.\n\n` +
-                   `📅 *Fecha de entrega:* ${fechaEntrega}\n` +
-                   `📅 *Fecha límite de devolución:* ${fechaDev}\n` +
-                   `${comentarios ? `\n📝 *Comentarios:*\n${comentarios}\n` : ''}` +
-                   `${campania ? `\n⚠️ *Este territorio es parte de una campaña especial*\n` : ''}` +
-                   `\nPor favor, confirma la recepción de este mensaje.\n\n` +
-                   `${territorio.imagen_url ? `\n🔍 *Ver territorio:* ${territorio.imagen_url}\n` : ''}` +
-                   `¡Gracias por tu servicio!`;
+    const message = `_¡Hola ${selectedUserObj.nombre}!_\n\n` +
+      `Te hemos asignado el territorio # *${territorio.numero}*.\n\n` +
+      `📅 *Fecha de entrega:* ${fechaEntrega}\n` +
+      `📅 *Fecha límite de finalización:* ${fechaDev}\n` +
+      `${territorio.imagen_url ? `\n🔍 *Para ver territorio en formato PDF 📄 toca el siguiente enlace:* ${territorio.imagen_url}\n` : ''}` +
+      `Un saludo 👋`;
 
     const encodedMessage = encodeURIComponent(message);
-    const phone = selectedUserObj.telefono.replace(/[^\d]/g, '');
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, "_blank");
+    const phone = selectedUserObj.telefono.replace(/[^\d]/g, "");
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`, "_blank");
   };
 
+  // al enviar el formulario
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedTerritorio || !selectedUserObj) {
@@ -88,7 +92,7 @@ export default function AssignTerritory() {
 
     const hoy = new Date().toISOString().slice(0, 10);
 
-    // Actualizar territorio
+    // 1) Actualizar territorio
     const { error: updateError } = await supabase
       .from("territorios")
       .update({
@@ -106,7 +110,7 @@ export default function AssignTerritory() {
       return alert("Error al asignar: " + updateError.message);
     }
 
-    // Insertar historial
+    // 2) Registrar en historial entregas
     const { error: logError } = await supabase.from("entregas").insert([
       {
         territorio_id: selectedTerritorio,
@@ -124,18 +128,13 @@ export default function AssignTerritory() {
       );
     }
 
-    // Enviar mensaje por WhatsApp
+    // 3) Abrir WhatsApp
     sendWhatsAppMessage();
 
-    alert("¡Territorio asignado exitosamente! Se abrirá WhatsApp para enviar el mensaje.");
+    alert(
+      "¡Territorio asignado exitosamente! Se abrirá WhatsApp para enviar el mensaje."
+    );
   }
-
-  const filteredUsers =
-    searchUser === ""
-      ? usuarios
-      : usuarios.filter((u) =>
-          u.nombre.toLowerCase().includes(searchUser.toLowerCase())
-        );
 
   return (
     <div className="max-w-xl mx-auto mt-8 bg-white shadow rounded-lg p-6">
@@ -167,10 +166,11 @@ export default function AssignTerritory() {
 
         {/* Usuario */}
         <div>
-          <label className="block mb-1 font-medium">
-            Usuario responsable
-          </label>
-          <Combobox value={selectedUserObj} onChange={setSelectedUserObj}>
+          <label className="block mb-1 font-medium">Usuario responsable</label>
+          <Combobox
+            value={selectedUserObj}
+            onChange={setSelectedUserObj}
+          >
             <div className="relative">
               <Combobox.Input
                 className="input w-full"
@@ -193,7 +193,7 @@ export default function AssignTerritory() {
                         }`
                       }
                     >
-                      {u.nombre} - {u.telefono}
+                      {u.nombre} – {u.telefono}
                     </Combobox.Option>
                   ))}
                 </Combobox.Options>
@@ -202,7 +202,7 @@ export default function AssignTerritory() {
           </Combobox>
         </div>
 
-        {/* Fecha (automática) */}
+        {/* Fecha (auto) */}
         <div>
           <label className="block mb-1 font-medium">
             Fecha de devolución (auto)
@@ -241,7 +241,7 @@ export default function AssignTerritory() {
 
         <button
           type="submit"
-          className="text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm px-5 py-3.5 text-center me-2 mb-2 dark:focus:ring-yellow-900 w-full"
+          className="text-white bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 font-medium rounded-full text-sm px-5 py-3.5 w-full"
         >
           Asignar Territorio
         </button>

@@ -20,7 +20,7 @@ export default function TerritoryForm({ initialData = {}, onSuccess }: Props) {
     if (initialData.id) return;
     async function loadNextNumero() {
       const { data, error } = await supabase
-        .from<Territory>("territorios")
+        .from<Territory, Territory>("territorios")
         .select("numero")
         .order("numero", { ascending: false })
         .limit(1)

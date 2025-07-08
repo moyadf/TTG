@@ -5,7 +5,7 @@ import type { User } from "../types/user";
 // 1. Traer todos los usuarios con activo y creado_en
 export async function getUsers(): Promise<User[]> {
   const { data, error } = await supabase
-    .from<User>("usuarios")
+    .from<User, User>("usuarios")
     .select("id, nombre, telefono, activo, creado_en")
     .order("nombre", { ascending: true });
 
@@ -13,7 +13,7 @@ export async function getUsers(): Promise<User[]> {
   return data || [];
 }
 
-// 2. Crear usuario (igual que antes)
+// 2. Crear usuario
 export async function createUser(user: Pick<User, "nombre" | "telefono">) {
   const { data, error } = await supabase
     .from("usuarios")

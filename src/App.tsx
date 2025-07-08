@@ -2,7 +2,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import UsersPage from "./pages/users/UserPages";
-import NewTerritory from "./pages/territories/NewTerritory";
 import AssignTerritory from "./pages/territories/AssignTerritory";
 import MainLayout from "./layouts/MainLayout";
 import ReturnTerritory from "./pages/territories/ReturnTerritory";

@@ -5,7 +5,7 @@ import type { Territory } from "../types/territory";
 // ① Listado completo (para la tabla)
 export async function getTerritoriosList() {
   const { data, error } = await supabase
-    .from<Territory>("territorios")
+    .from<Territory, any>("territorios")
     .select(
       "id, numero, estado, imagen_url, fecha_entrega, fecha_caducidad, descansa_hasta, comentarios, usuario_asignado(id, nombre)"
     )

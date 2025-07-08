@@ -4,7 +4,7 @@ import type { Delivery } from "../types/delivery";
 
 export async function getEntregas(filter?: { territorio_id?: string }) {
   let query = supabase
-    .from<Delivery>("entregas")
+    .from<Delivery, any>("entregas")
     .select(`
       id,
       territorio_id,
